@@ -26,6 +26,7 @@
             {
                 float4 vertex : POSITION;
                 fixed3 normal : NORMAL;
+                float4 tangent : TANGENT;
             };
 
             struct v2f
@@ -33,6 +34,7 @@
                 float4 clip : SV_POSITION;
                 float4 pos : TEXCOORD1;
                 fixed3 normal : NORMAL;
+                float4 tangent : TANGENT;
             };
 
             float4 _BaseColor;
@@ -47,6 +49,7 @@
                 o.clip = UnityObjectToClipPos(v.vertex);
                 o.pos = mul(UNITY_MATRIX_M, v.vertex);
                 o.normal = UnityObjectToWorldNormal(v.normal);
+                o.tangent = v.tangent;
                 return o;
             }
 
@@ -98,10 +101,24 @@
                 // Replace this specular calculation by Montecarlo.
                 // Normalize the BRDF in such a way, that integral over a hemysphere of (BRDF * dot(normal, w')) == 1
                 // TIP: use Random(i) to get a pseudo-random value.
-                float3 viewRefl = reflect(-viewDirection.xyz, normal);
-                float3 specular = SampleColor(viewRefl);
-                
-                return fixed4(specular, 1);
+//                float3 viewRefl = reflect(-viewDirection.xyz, normal);
+//                float3 specular = SampleColor(viewRefl);
+
+                int N = 1000;
+                float4 result = 0;
+                for (int j = 0; j < N; ++j) {
+                    float cosTheta = Random(2 * j);
+                    float sinTheta = sqrt(1 - Sqr(cosTheta));
+                    float alpha = Random(2 * j + 1) * 2 * UNITY_PI;
+
+                    float3 _w = sinTheta * cos(alpha) * i.tangent.xyz
+                                    + sinTheta * sin(alpha) * cross(normal, i.tangent.xyz)
+                                    + cosTheta * normal;
+
+                    result += float4(SampleColor(_w), 1) *  GetSpecularBRDF(viewDirection, _w, normal) * cosTheta;
+                }
+
+                return fixed4(result.xyz / result.w, 1);
             }
             ENDCG
         }
