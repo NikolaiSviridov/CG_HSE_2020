@@ -8,7 +8,7 @@ public class MetaBallField
     public Transform[] Balls = new Transform[0];
     public float BallRadius = 1;
 
-    private Vector3[] _ballPositions;
+    public Vector3[] _ballPositions;
     
     /// <summary>
     /// Call Field.Update to react to ball position and parameters in run-time.
