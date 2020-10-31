@@ -13,8 +13,8 @@ public class MeshGenerator : MonoBehaviour
     private List<int> indices = new List<int>();
 
     private static readonly  Vector3 x_delta = new Vector3(0.1f, 0, 0);
-    private static readonly Vector3 y_delta = new Vector3(0, 0, 0.1f);
-    private static readonly Vector3 z_delta = new Vector3(0, 0.1f, 0);
+    private static readonly Vector3 y_delta = new Vector3(0, 0.1f, 0);
+    private static readonly Vector3 z_delta = new Vector3(0, 0, 0.1f);
 
     private const float cubeSize = 0.3f;
     private const int spaceSize = 100;
@@ -43,9 +43,9 @@ public class MeshGenerator : MonoBehaviour
     {
         return Vector3.Normalize(
             new Vector3(
-                Field.F(x + x_delta) - Field.F(x - x_delta),
-                Field.F(x + y_delta) - Field.F(x - y_delta),
-                Field.F(x + z_delta) - Field.F(x - z_delta)
+                Field.F(x) - Field.F(x + x_delta),
+                Field.F(x) - Field.F(x + y_delta),
+                Field.F(x ) - Field.F(x + z_delta)
             )
         );
     }
