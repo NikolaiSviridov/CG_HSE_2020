@@ -22,6 +22,8 @@ RWStructuredBuffer<float4> SH_2_rgb;
 
 TextureCube<half4> _Env;
 SamplerState samplerLinearRepeat;
+// static const float c[] = {0.282095f, 0.488603f, 1.092548f, 0.315392f};
+static const float c[] = {2.0f, 3.75f, 0.625f, 0.234f};
 
 uint Hash(uint s)
 {
@@ -40,42 +42,92 @@ float Random(uint seed)
 }
 
 float3 SampleColor(float3 direction)
-{   
+{
     float4 tex = _Env.SampleLevel(samplerLinearRepeat, direction, 0);
     return tex.rgb;
+}
+
+float Sqr(float x)
+{
+    return x * x;
 }
 
 [numthreads(1024, 1, 1)]
 void ComputeHarmonics(uint id : SV_DispatchThreadID)
 {
     const int THREADS = 1024;
-    const int SAMPLES = 100;
-    
+    const int SAMPLES = 4500;
+
+    float3 L00, L1m1, L10, L11, L2m2, L2m1, L20, L21, L22;
+
+    for (int i = 0; i < SAMPLES; ++i)
+    {
+        float cosTheta = 2 * Random(2 * i) - 1;
+        float sinTheta = sqrt(1 - Sqr(cosTheta));
+        float alpha = Random(2 * i + 1) * 2 * PI;
+
+        float x = cos(alpha) * sinTheta;
+        float y = sin(alpha) * sinTheta;
+        float z = cosTheta;
+
+        float3 color = SampleColor(float3(x, y, z));
+
+        L00 += color;
+
+        L11 += color * x;
+        L1m1 += color * y;
+        L10 += color * z;
+
+        L2m2 += color * x * y;
+        L2m1 += color * y * z;
+        L21 += color * x * z;
+
+        L20 += color * (3 * Sqr(z) - 1);
+        L22 += color * (Sqr(x) - Sqr(y));
+    }
+
+    L11 *= c[0];
+    L10 *= c[0];
+    L1m1 *= c[0];
+
+    L2m2 *= c[1];
+    L2m1 *= c[1];
+    L21 *= c[1];
+
+    L20 *= c[2];
+
+    L22 *= c[3];
+
     // See SH.shader for more details
     float4 results[7] = {
-        float4(0, 0, 0, 0), // SH_0_1_r
-        float4(0, 0, 0, 0), // SH_0_1_g
-        float4(0, 0, 0, 0), // SH_0_1_b
-        
-        float4(0, 0, 0, 0), // SH_2_r
-        float4(0, 0, 0, 0), // SH_2_g
-        float4(0, 0, 0, 0), // SH_2_b
-        
-        float4(0, 0, 0, 0), // SH_2_rgb
+        float4(L11.r, L1m1.r, L10.r, L00.r), // SH_0_1_r
+        float4(L11.g, L1m1.g, L10.g, L00.g), // SH_0_1_g
+        float4(L11.b, L1m1.b, L10.b, L00.b), // SH_0_1_b
+
+        float4(L2m2.r, L2m1.r, L21.r, L20.r), // SH_2_r
+        float4(L2m2.g, L2m1.g, L21.g, L20.g), // SH_2_g
+        float4(L2m2.b, L2m1.b, L21.b, L20.b), // SH_2_b
+
+        float4(L22, 0), // SH_2_rgb
     };
-    
+
+    for (int i = 0; i < 7; ++i)
+    {
+        results[i] /= SAMPLES;
+    }
+
     // Populate results buffer using monte-carlo method.
     // You can see the Random(i) function. Use it just as with the previous task.
-    
+
     // TASK: project light from _Env to spherical harmonic coefficients and store them in results[]
-    
+
     SH_0_1_r[id] = results[0];
     SH_0_1_g[id] = results[1];
     SH_0_1_b[id] = results[2];
-    
+
     SH_2_r[id] = results[3];
     SH_2_g[id] = results[4];
-    SH_2_b[id] = results[5];    
-    
+    SH_2_b[id] = results[5];
+
     SH_2_rgb[id] = results[6];
 }
