@@ -11,6 +11,7 @@
         _MaxHeight("Max Height", Range(0.0001, 0.02)) = 0.01
         _StepLength("Step Length", Float) = 0.000001
         _MaxStepCount("Max Step Count", Int) = 64
+        _TexToWorldLen("Texture To World Length", Float) = 8
         
         _Reflectivity("Reflectivity", Range(1, 100)) = 0.5
     }
@@ -69,6 +70,7 @@
     uniform float _StepLength;
     // Count of steps
     uniform int _MaxStepCount;
+    uniform float _TexToWorldLen;
     
     float _Reflectivity;
 
@@ -94,6 +96,7 @@
         float depthDif = 0;
 #if MODE_POM | MODE_POM_SHADOWS    
         // Change UV according to Parallax Occclusion Mapping
+        float2 oldUV = uv;
 
         float stepH = abs(viewDir.z) * _StepLength;
         float _height = 0;
@@ -109,15 +112,16 @@
             {
                 _height += stepH;
                 _uv += stepUV;
-            }
-            height = getHeight(_uv);
+                height = getHeight(_uv);
+            } 
         }
 
         // find sample point
 //        uv = _uv;
         float t = (_height - stepH - getHeight(_uv - stepUV)) /
                   (height - stepH - getHeight(_uv - stepUV));
-        uv = lerp(_uv, _uv - stepUV, t);
+        uv = lerp(_uv, _uv - stepUV, t);        
+        depthDif = length(uv - oldUV) * _TexToWorldLen;
 #endif
 
         float3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
@@ -150,7 +154,7 @@
         // Return resulting color
         float3 texColor = tex2D(_MainTex, uv);
         outColor = half4((diffuseLight + specularLight + ambient) * texColor, 0);
-        outDepth = LinearEyeDepthToOutDepth(LinearEyeDepth(i.clip.z));
+        outDepth = LinearEyeDepthToOutDepth(LinearEyeDepth(i.clip.z) + depthDif);
     }
     ENDCG
     
