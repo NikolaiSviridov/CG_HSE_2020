@@ -11,7 +11,6 @@
         _MaxHeight("Max Height", Range(0.0001, 0.02)) = 0.01
         _StepLength("Step Length", Float) = 0.000001
         _MaxStepCount("Max Step Count", Int) = 64
-        _TexToWorldLen("Texture To World Length", Float) = 8
         
         _Reflectivity("Reflectivity", Range(1, 100)) = 0.5
     }
@@ -121,7 +120,7 @@
         float t = (_height - stepH - getHeight(_uv - stepUV)) /
                   (height - stepH - getHeight(_uv - stepUV));
         uv = lerp(_uv, _uv - stepUV, t);        
-        depthDif = length(uv - oldUV) * _TexToWorldLen;
+        depthDif = length(uv - oldUV) * 8;
 #endif
 
         float3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
